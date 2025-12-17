@@ -1,6 +1,7 @@
 services:
-  puppeteer-1:
+  puppeteer-1:  
     build: ./puppeteer
+    container_name: puppeteer-1
     environment:
       - PORT=3000
       - MAX_CONCURRENCY=2
@@ -10,6 +11,7 @@ services:
 
   puppeteer-2:
     build: ./puppeteer
+    container_name: puppeteer-2
     environment:
       - PORT=3000
       - MAX_CONCURRENCY=2
@@ -19,6 +21,7 @@ services:
 
   puppeteer-3:
     build: ./puppeteer
+    container_name: puppeteer-3
     environment:
       - PORT=3000
       - MAX_CONCURRENCY=2
@@ -28,6 +31,7 @@ services:
 
   puppeteer-4:
     build: ./puppeteer
+    container_name: puppeteer-4
     environment:
       - PORT=3000
       - MAX_CONCURRENCY=2
@@ -37,6 +41,7 @@ services:
 
   puppeteer-5:
     build: ./puppeteer
+    container_name: puppeteer-5
     environment:
       - PORT=3000
       - MAX_CONCURRENCY=2
@@ -46,6 +51,7 @@ services:
   
   puppeteer-6:
     build: ./puppeteer
+    container_name: puppeteer-6
     environment:
       - PORT=3000
       - MAX_CONCURRENCY=2
@@ -55,6 +61,7 @@ services:
 
   puppeteer-7:
     build: ./puppeteer
+    container_name: puppeteer-7
     environment:
       - PORT=3000
       - MAX_CONCURRENCY=2
@@ -64,6 +71,7 @@ services:
 
   puppeteer-lb:  
     image: nginx:1.27-alpine
+    container_name: puppeteer-lb
     ports:
       - "8087:80"   # expose le LB
     volumes:
