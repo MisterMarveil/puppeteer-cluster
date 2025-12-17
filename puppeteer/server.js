@@ -2,7 +2,7 @@ import express from "express";
 import puppeteer from "puppeteer";
 
 const app = express();
-app.use(express.json({ limit: "25mb" })); // ajuste selon tes HTML
+app.use(express.json({ limit: "150mb" })); // ajuste selon tes HTML
 
 const PORT = process.env.PORT || 3000;
 const MAX_CONCURRENCY = Number(process.env.MAX_CONCURRENCY || 2);
