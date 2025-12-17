@@ -70,14 +70,14 @@ app.post("/render", async (req, res) => {
     await new Promise(r => setTimeout(r, 100));
     
     const pdf = await page.pdf({
-      format: "A3",
+      format: "A4",
       printBackground: true,
       preferCSSPageSize: false,
       margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" },
       displayHeaderFooter: false,
       scale: 1,
       timeout: 120000,
-      ...pdfOptions
+      //...pdfOptions
     });
 
     await page.close();
