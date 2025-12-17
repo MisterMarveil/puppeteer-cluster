@@ -1,113 +1,113 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const puppeteer = require('puppeteer');
+import express from "express";
+import puppeteer from "puppeteer";
+import fs from "fs";
 
 const app = express();
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: "150mb" })); // ajuste selon tes HTML
 
-const API_KEY = process.env.PDF_API_KEY || '';
+const PORT = process.env.PORT || 3000;
+const MAX_CONCURRENCY = Number(process.env.MAX_CONCURRENCY || 2);
 
-app.post('/render-pdf', async (req, res) => {
-    if (API_KEY && req.headers['x-api-key'] !== API_KEY) {
-        return res.status(403).json({ error: 'Forbidden' });
-    }
+// mini “semaphore” pour éviter qu’un worker sature
+let inFlight = 0;
+async function acquire() {
+  while (inFlight >= MAX_CONCURRENCY) {
+    await new Promise(r => setTimeout(r, 25));
+  }
+  inFlight++;
+}
+function release() { inFlight = Math.max(0, inFlight - 1); }
 
-    const { htmlPath, outputPath, orientation, paperSize } = req.body;
+let browser;
 
-    if (!htmlPath || !outputPath) {
-        return res.status(400).json({ error: 'htmlPath and outputPath are required' });
-    }
+async function getBrowser() {
+  if (browser) return browser;
+  browser = await puppeteer.launch({
+    headless: "new",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--font-render-hinting=none"
+    ]
+  });
+  return browser;
+}
 
-    let _landscape = !orientation ? false : !(orientation == 'Portrait' || orientation.startsWith('P') || orientation.startsWith('p'));
-    let _size =  paperSize ?  paperSize : 'A3';
-
-    if (!htmlPath.startsWith('/app/tmp/') || !outputPath.startsWith('/app/tmp/')) {
-        return res.status(400).json({ error: 'Invalid path' });
-    }
-
-    if (!fs.existsSync(htmlPath)) {
-        return res.status(404).json({ error: 'HTML file not found' });
-    }
-
-    let browser;
-
-    try {
-        browser = await puppeteer.launch({
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu'
-            ],
-            headless: 'new' // Utiliser le nouveau headless
-        });
-
-        const page = await browser.newPage();
-        
-        // Configurer la page pour mieux gérer les backgrounds
-/*        await page.setViewport({
-            width: 1240,
-            height: 1754,
-            deviceScaleFactor: 2 // Augmenter la résolution
-        });*/
-
-        // Activer les backgrounds avant de charger la page
-        await page.emulateMediaType('screen');
-        
-        // Lire le contenu HTML
-        const htmlContent = fs.readFileSync(htmlPath, 'utf8');
-        
-        // Configurer le content security policy pour permettre les data URLs
-        await page.setContent(htmlContent, {
-            waitUntil: 'networkidle0',
-            timeout: 30000
-        });
-
-        // Attendre que les éléments soient rendus
-        await page.waitForSelector('.page');
-        
-        // Prendre une capture pour debug
-        await page.screenshot({ path: outputPath.replace('.pdf', '.png'), fullPage: true });
-
-        // Générer le PDF avec plus d'options
-        await page.pdf({
-            path: outputPath,
-            format: _size,
-            printBackground: true,
-            preferCSSPageSize: false,
-            margin: {
-                top: '0mm',
-                bottom: '0mm',
-                left: '0mm',
-                right: '0mm',
-            },
-            displayHeaderFooter: false,
-            scale: 1,
-            landscape: _landscape,
-            timeout: 120000
-        });
-
-        console.log(`✅ PDF généré: ${outputPath}`);
-        res.json({ 
-            status: 'ok', 
-            pdf: outputPath,
-            preview: outputPath.replace('.pdf', '.png')
-        });
-
-    } catch (err) {
-        console.error('❌ Erreur:', err);
-        res.status(500).json({ 
-            error: err.message,
-            stack: err.stack 
-        });
-    } finally {
-        if (browser) await browser.close();
-    }
+app.get("/health", async (req, res) => {
+  try {
+    const b = await getBrowser();
+    res.json({ ok: true, pid: process.pid, ws: !!b });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
 });
 
-const PORT = process.env.PORT || 3006;
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Puppeteer PDF service listening on port ${PORT}`);
+app.post("/render", async (req, res) => {
+  const startedAt = Date.now();
+  await acquire();
+
+  try {
+    const {
+      html,
+      htmlPath,
+      url,
+      pdfOptions = {},
+      waitUntil = "networkidle0",
+      timeoutMs = 60000
+    } = req.body || {};
+
+    if (!html && !htmlPath && !url) {
+      return res.status(400).json({ error: "Provide html, htmlPath or url" });
+    }
+
+    const b = await getBrowser();
+    const page = await b.newPage();
+    page.setDefaultTimeout(timeoutMs);
+
+    await page.setViewport({ width: 1280, height: 720 });
+
+    if (url) {
+      await page.goto(url, { waitUntil });
+    } 
+    else if (htmlPath) {
+      if (!fs.existsSync(htmlPath)) {
+        return res.status(404).json({ error: "HTML file not found" });
+      }
+      await page.goto(`file://${htmlPath}`, { waitUntil });
+    } 
+    else {
+      await page.setContent(html, { waitUntil });
+    }
+
+    await new Promise(r => setTimeout(r, 100));
+
+    const buffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" },
+      ...pdfOptions
+    });
+
+    await page.close();
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("X-Render-Duration-Ms", String(Date.now() - startedAt));
+    res.send(buffer);
+
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  } finally {
+    release();
+  }
 });
+
+
+process.on("SIGTERM", async () => {
+  try { if (browser) await browser.close(); } catch {}
+  process.exit(0);
+});
+
+app.listen(PORT, () => console.log(`Puppeteer service on :${PORT} (max=${MAX_CONCURRENCY})`));
