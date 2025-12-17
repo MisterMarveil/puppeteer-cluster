@@ -1,5 +1,6 @@
 services:
   puppeteer-1:
+    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -9,6 +10,7 @@ services:
     restart: unless-stopped
 
   puppeteer-2:
+    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -18,6 +20,7 @@ services:
     restart: unless-stopped
 
   puppeteer-3:
+    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -27,6 +30,7 @@ services:
     restart: unless-stopped
 
   puppeteer-4:
+    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -36,6 +40,7 @@ services:
     restart: unless-stopped
 
   puppeteer-5:
+    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -45,6 +50,7 @@ services:
     restart: unless-stopped
   
   puppeteer-6:
+    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -54,6 +60,7 @@ services:
     restart: unless-stopped
 
   puppeteer-7:
+    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -62,7 +69,7 @@ services:
       - ./shared/pdf:/shared/pdf
     restart: unless-stopped
 
-  puppeteer-lb:
+  puppeteer-lb:  
     image: nginx:1.27-alpine
     ports:
       - "8087:80"   # expose le LB
