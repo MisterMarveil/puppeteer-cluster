@@ -67,6 +67,7 @@ app.post("/render", async (req, res) => {
       await page.setContent(html, { waitUntil });
     }
 
+    await page.emulateMediaType('screen');
     await new Promise(r => setTimeout(r, 100));
     
     const pdf = await page.pdf({
