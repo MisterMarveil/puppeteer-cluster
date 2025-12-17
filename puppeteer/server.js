@@ -1,95 +1,113 @@
-import express from "express";
-import puppeteer from "puppeteer";
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const puppeteer = require('puppeteer');
 
 const app = express();
-app.use(express.json({ limit: "150mb" })); // ajuste selon tes HTML
+app.use(express.json({ limit: '5mb' }));
 
-const PORT = process.env.PORT || 3000;
-const MAX_CONCURRENCY = Number(process.env.MAX_CONCURRENCY || 2);
+const API_KEY = process.env.PDF_API_KEY || '';
 
-// mini “semaphore” pour éviter qu’un worker sature
-let inFlight = 0;
-async function acquire() {
-  while (inFlight >= MAX_CONCURRENCY) {
-    await new Promise(r => setTimeout(r, 25));
-  }
-  inFlight++;
-}
-function release() { inFlight = Math.max(0, inFlight - 1); }
-
-let browser;
-
-async function getBrowser() {
-  if (browser) return browser;
-  browser = await puppeteer.launch({
-    headless: "new",
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--font-render-hinting=none"
-    ]
-  });
-  return browser;
-}
-
-app.get("/health", async (req, res) => {
-  try {
-    const b = await getBrowser();
-    res.json({ ok: true, pid: process.pid, ws: !!b });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
-  }
-});
-
-app.post("/render", async (req, res) => {
-  const startedAt = Date.now();
-  await acquire();
-
-  try {
-    const { html, url, pdfOptions = {}, waitUntil = "networkidle0", timeoutMs = 60000 } = req.body || {};
-    if (!html && !url) return res.status(400).json({ error: "Provide html or url" });
-
-    const b = await getBrowser();
-    const page = await b.newPage();
-    page.setDefaultTimeout(timeoutMs);
-
-    // Important pour éviter certains décalages / tailles
-    await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
-
-    if (url) {
-      await page.goto(url, { waitUntil });
-    } else {
-      await page.setContent(html, { waitUntil });
+app.post('/render-pdf', async (req, res) => {
+    if (API_KEY && req.headers['x-api-key'] !== API_KEY) {
+        return res.status(403).json({ error: 'Forbidden' });
     }
 
-    // Si tes styles chargent des polices/images : petit délai de stabilisation
-    //await page.waitForTimeout(150);
-    await new Promise(resolve => setTimeout(resolve, 150));
+    const { htmlPath, outputPath, orientation, paperSize } = req.body;
 
-    const buffer = await page.pdf({
-      format: "A4",
-      printBackground: true,        // indispensable pour les backgrounds
-      preferCSSPageSize: true,      // respecte @page si présent
-      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
-      ...pdfOptions
-    });
+    if (!htmlPath || !outputPath) {
+        return res.status(400).json({ error: 'htmlPath and outputPath are required' });
+    }
 
-    await page.close();
+    let _landscape = !orientation ? false : !(orientation == 'Portrait' || orientation.startsWith('P') || orientation.startsWith('p'));
+    let _size =  paperSize ?  paperSize : 'A3';
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("X-Render-Duration-Ms", String(Date.now() - startedAt));
-    res.send(buffer);
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  } finally {
-    release();
-  }
+    if (!htmlPath.startsWith('/app/tmp/') || !outputPath.startsWith('/app/tmp/')) {
+        return res.status(400).json({ error: 'Invalid path' });
+    }
+
+    if (!fs.existsSync(htmlPath)) {
+        return res.status(404).json({ error: 'HTML file not found' });
+    }
+
+    let browser;
+
+    try {
+        browser = await puppeteer.launch({
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu'
+            ],
+            headless: 'new' // Utiliser le nouveau headless
+        });
+
+        const page = await browser.newPage();
+        
+        // Configurer la page pour mieux gérer les backgrounds
+/*        await page.setViewport({
+            width: 1240,
+            height: 1754,
+            deviceScaleFactor: 2 // Augmenter la résolution
+        });*/
+
+        // Activer les backgrounds avant de charger la page
+        await page.emulateMediaType('screen');
+        
+        // Lire le contenu HTML
+        const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+        
+        // Configurer le content security policy pour permettre les data URLs
+        await page.setContent(htmlContent, {
+            waitUntil: 'networkidle0',
+            timeout: 30000
+        });
+
+        // Attendre que les éléments soient rendus
+        await page.waitForSelector('.page');
+        
+        // Prendre une capture pour debug
+        await page.screenshot({ path: outputPath.replace('.pdf', '.png'), fullPage: true });
+
+        // Générer le PDF avec plus d'options
+        await page.pdf({
+            path: outputPath,
+            format: _size,
+            printBackground: true,
+            preferCSSPageSize: false,
+            margin: {
+                top: '0mm',
+                bottom: '0mm',
+                left: '0mm',
+                right: '0mm',
+            },
+            displayHeaderFooter: false,
+            scale: 1,
+            landscape: _landscape,
+            timeout: 120000
+        });
+
+        console.log(`✅ PDF généré: ${outputPath}`);
+        res.json({ 
+            status: 'ok', 
+            pdf: outputPath,
+            preview: outputPath.replace('.pdf', '.png')
+        });
+
+    } catch (err) {
+        console.error('❌ Erreur:', err);
+        res.status(500).json({ 
+            error: err.message,
+            stack: err.stack 
+        });
+    } finally {
+        if (browser) await browser.close();
+    }
 });
 
-process.on("SIGTERM", async () => {
-  try { if (browser) await browser.close(); } catch {}
-  process.exit(0);
-});
+const PORT = process.env.PORT || 3006;
 
-app.listen(PORT, () => console.log(`Puppeteer service on :${PORT} (max=${MAX_CONCURRENCY})`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Puppeteer PDF service listening on port ${PORT}`);
+});
