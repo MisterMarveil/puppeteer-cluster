@@ -1,0 +1,65 @@
+services:
+  puppeteer-1:
+    build: ./puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=2
+    restart: unless-stopped
+
+  puppeteer-2:
+    build: ./puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=2
+    restart: unless-stopped
+
+  puppeteer-3:
+    build: ./puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=2
+    restart: unless-stopped
+
+  puppeteer-4:
+    build: ./puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=2
+    restart: unless-stopped
+
+  puppeteer-5:
+    build: ./puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=2
+    restart: unless-stopped
+  
+  puppeteer-6:
+    build: ./puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=2
+    restart: unless-stopped
+
+  puppeteer-7:
+    build: ./puppeteer
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=2
+    restart: unless-stopped
+
+  puppeteer-lb:
+    image: nginx:1.27-alpine
+    ports:
+      - "8087:80"   # expose le LB
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - puppeteer-1
+      - puppeteer-2
+      - puppeteer-3
+      - puppeteer-4
+      - puppeteer-5
+      - puppeteer-6
+      - puppeteer-7
+    restart: unless-stopped
