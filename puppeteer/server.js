@@ -64,7 +64,8 @@ app.post("/render", async (req, res) => {
     }
 
     // Si tes styles chargent des polices/images : petit délai de stabilisation
-    await page.waitForTimeout(150);
+    //await page.waitForTimeout(150);
+    await new Promise(resolve => setTimeout(resolve, 150));
 
     const buffer = await page.pdf({
       format: "A4",
