@@ -1,6 +1,5 @@
 services:
   puppeteer-1:
-    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -10,7 +9,6 @@ services:
     restart: unless-stopped
 
   puppeteer-2:
-    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -20,7 +18,6 @@ services:
     restart: unless-stopped
 
   puppeteer-3:
-    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -30,7 +27,6 @@ services:
     restart: unless-stopped
 
   puppeteer-4:
-    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -40,7 +36,6 @@ services:
     restart: unless-stopped
 
   puppeteer-5:
-    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -50,7 +45,6 @@ services:
     restart: unless-stopped
   
   puppeteer-6:
-    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
@@ -60,7 +54,6 @@ services:
     restart: unless-stopped
 
   puppeteer-7:
-    user: "1004:1004"
     build: ./puppeteer
     environment:
       - PORT=3000
