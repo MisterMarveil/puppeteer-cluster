@@ -6,7 +6,7 @@ services:
       - PORT=3000
       - MAX_CONCURRENCY=2
     volumes:
-      - ./shared/pdf:/shared/pdf
+      - /var/www/tmp:/var/www/tmp
     restart: unless-stopped
 
   puppeteer-2:
@@ -16,7 +16,7 @@ services:
       - PORT=3000
       - MAX_CONCURRENCY=2
     volumes:
-      - ./shared/pdf:/shared/pdf
+      - /var/www/tmp:/var/www/tmp
     restart: unless-stopped
 
   puppeteer-3:
@@ -26,7 +26,7 @@ services:
       - PORT=3000
       - MAX_CONCURRENCY=2
     volumes:
-      - ./shared/pdf:/shared/pdf
+      - /var/www/tmp:/var/www/tmp
     restart: unless-stopped
 
   puppeteer-4:
@@ -36,7 +36,7 @@ services:
       - PORT=3000
       - MAX_CONCURRENCY=2
     volumes:
-      - ./shared/pdf:/shared/pdf
+      - /var/www/tmp:/var/www/tmp
     restart: unless-stopped
 
   puppeteer-5:
@@ -46,7 +46,7 @@ services:
       - PORT=3000
       - MAX_CONCURRENCY=2
     volumes:
-      - ./shared/pdf:/shared/pdf
+      - /var/www/tmp:/var/www/tmp
     restart: unless-stopped
   
   puppeteer-6:
@@ -56,7 +56,7 @@ services:
       - PORT=3000
       - MAX_CONCURRENCY=2
     volumes:
-      - ./shared/pdf:/shared/pdf
+      - /var/www/tmp:/var/www/tmp
     restart: unless-stopped
 
   puppeteer-7:
@@ -66,7 +66,7 @@ services:
       - PORT=3000
       - MAX_CONCURRENCY=2
     volumes:
-      - ./shared/pdf:/shared/pdf
+      - /var/www/tmp:/var/www/tmp
     restart: unless-stopped
 
   puppeteer-lb:  
