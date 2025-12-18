@@ -78,7 +78,7 @@ app.post("/render", async (req, res) => {
       displayHeaderFooter: false,
       scale: 1,
       timeout: 120000,
-      //...pdfOptions
+      ...pdfOptions
     });
 
     await page.close();
