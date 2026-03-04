@@ -66,9 +66,7 @@ app.post("/render", async (req, res) => {
     } else {
       await page.setContent(html, { waitUntil });
     }
-
-    res.json({ ok: true, file: htmlPath });
-
+    
     await page.emulateMediaType('screen');
     // 🔥 FORCE FONT LOAD
     await page.evaluateHandle('document.fonts.ready');
