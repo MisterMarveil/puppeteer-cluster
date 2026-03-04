@@ -5,7 +5,7 @@ import fs from "fs";
 const app = express();
 app.use(express.json({ limit: "150mb" }));
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3005;
 const MAX_CONCURRENCY = Number(process.env.MAX_CONCURRENCY || 2);
 
 // Semaphore simple

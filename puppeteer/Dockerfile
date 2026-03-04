@@ -50,5 +50,5 @@ COPY server.js ./
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV CHROME_BIN=/usr/bin/google-chrome
 
-EXPOSE 3000
+EXPOSE 3005
 CMD ["node", "server.js"]
