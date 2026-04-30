@@ -1,3 +1,12 @@
+networks:
+  puppeteer_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.50.0/24
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+
 services:
   puppeteer-1:  
     build: ./puppeteer
@@ -8,6 +17,8 @@ services:
     volumes:
       - /home/bridge/puppeteer:/var/www/tmp
     restart: unless-stopped
+    networks:
+      - puppeteer_net
 
   puppeteer-2:
     build: ./puppeteer
@@ -18,6 +29,8 @@ services:
     volumes:
       - /home/bridge/puppeteer:/var/www/tmp
     restart: unless-stopped
+    networks:
+      - puppeteer_net
 
   puppeteer-3:
     build: ./puppeteer
@@ -28,6 +41,8 @@ services:
     volumes:
       - /home/bridge/puppeteer:/var/www/tmp
     restart: unless-stopped
+    networks:
+      - puppeteer_net
 
   puppeteer-4:
     build: ./puppeteer
@@ -38,6 +53,8 @@ services:
     volumes:
       - /home/bridge/puppeteer:/var/www/tmp
     restart: unless-stopped
+    networks:
+      - puppeteer_net
 
   puppeteer-5:
     build: ./puppeteer
@@ -48,6 +65,8 @@ services:
     volumes:
       - /home/bridge/puppeteer:/var/www/tmp
     restart: unless-stopped
+    networks:
+      - puppeteer_net
   
   puppeteer-6:
     build: ./puppeteer
@@ -58,6 +77,8 @@ services:
     volumes:
       - /home/bridge/puppeteer:/var/www/tmp
     restart: unless-stopped
+    networks:
+      - puppeteer_net
 
   puppeteer-7:
     build: ./puppeteer
@@ -68,6 +89,8 @@ services:
     volumes:
       - /home/bridge/puppeteer:/var/www/tmp
     restart: unless-stopped
+    networks:
+      - puppeteer_net
 
   puppeteer-lb:  
     image: nginx:1.27-alpine
@@ -85,3 +108,5 @@ services:
       - puppeteer-6
       - puppeteer-7
     restart: unless-stopped
+    networks:
+      - puppeteer_net
