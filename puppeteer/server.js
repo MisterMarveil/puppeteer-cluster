@@ -36,12 +36,21 @@ async function getBrowser() {
   return browser;
 }
 
-app.get("/health", async (req, res) => {
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    service: "puppeteer-worker",
+    pid: process.pid,
+    port: PORT
+  });
+});
+
+app.get("/chrome-health", async (req, res) => {
   try {
     await getBrowser();
-    res.json({ ok: true });
+    res.json({ ok: true, chrome: true });
   } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+    res.status(500).json({ ok: false, chrome: false, error: e.message });
   }
 });
 
