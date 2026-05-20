@@ -101,6 +101,9 @@ app.post("/render", async (req, res) => {
     res.status(500).json({ error: e.message });
   } finally {
     release();
+    if (browser) {
+      await browser.close().catch(() => {});
+    }
   }
 });
 
