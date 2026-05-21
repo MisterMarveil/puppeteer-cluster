@@ -100,10 +100,7 @@ app.post("/render", async (req, res) => {
     console.error(e);
     res.status(500).json({ error: e.message });
   } finally {
-    release();
-    if (browser) {
-      await browser.close().catch(() => {});
-    }
+    release();    
   }
 });
 
