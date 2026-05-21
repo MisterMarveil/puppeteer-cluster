@@ -1,14 +1,9 @@
 networks:
   puppeteer_net:
     driver: bridge
-    #ipam:
-    #  config:
-    #    - subnet: 172.28.50.0/24
-    #driver_opts:
-    #  com.docker.network.bridge.enable_icc: "true"
 
 services:
-  puppeteer-1:  
+  puppeteer-1:
     build: ./puppeteer
     container_name: puppeteer-1
     environment:
@@ -67,7 +62,7 @@ services:
     restart: unless-stopped
     networks:
       - puppeteer_net
-  
+
   puppeteer-6:
     build: ./puppeteer
     container_name: puppeteer-6
@@ -92,23 +87,23 @@ services:
     networks:
       - puppeteer_net
 
-puppeteer-lb:
-  image: nginx:1.27-alpine
-  container_name: puppeteer-lb
-  ports:
-    - "8087:80"
-  volumes:
-    - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    - ./nginx/docker-entrypoint-wait.sh:/docker-entrypoint-wait.sh:ro
-  entrypoint: /docker-entrypoint-wait.sh
-  depends_on:
-    - puppeteer-1
-    - puppeteer-2
-    - puppeteer-3
-    - puppeteer-4
-    - puppeteer-5
-    - puppeteer-6
-    - puppeteer-7
-  restart: unless-stopped
-  networks:
-    - puppeteer_net
+  puppeteer-lb:
+    image: nginx:1.27-alpine
+    container_name: puppeteer-lb
+    ports:
+      - "8087:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/docker-entrypoint-wait.sh:/docker-entrypoint-wait.sh:ro
+    entrypoint: /docker-entrypoint-wait.sh
+    depends_on:
+      - puppeteer-1
+      - puppeteer-2
+      - puppeteer-3
+      - puppeteer-4
+      - puppeteer-5
+      - puppeteer-6
+      - puppeteer-7
+    restart: unless-stopped
+    networks:
+      - puppeteer_net
