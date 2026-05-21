@@ -94,8 +94,6 @@ services:
       - "8087:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/docker-entrypoint-wait.sh:/docker-entrypoint-wait.sh:ro
-    entrypoint: /docker-entrypoint-wait.sh
     depends_on:
       - puppeteer-1
       - puppeteer-2
