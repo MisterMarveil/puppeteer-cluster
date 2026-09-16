@@ -8,7 +8,6 @@ app.use(express.json({ limit: "150mb" }));
 const PORT = process.env.PORT || 3005;
 const MAX_CONCURRENCY = Number(process.env.MAX_CONCURRENCY || 2);
 
-// Semaphore simple
 let inFlight = 0;
 async function acquire() {
   while (inFlight >= MAX_CONCURRENCY) {
@@ -56,14 +55,23 @@ app.get("/chrome-health", async (req, res) => {
 
 app.post("/render", async (req, res) => {
   await acquire();
+  let page = null;
+
   try {
-    const { html, htmlPath, url, pdfOptions = {}, waitUntil = "networkidle0" } = req.body || {};
+    const {
+      html,
+      htmlPath,
+      url,
+      pdfOptions = {},
+      waitUntil = "networkidle0"
+    } = req.body || {};
+
     if (!html && !htmlPath && !url) {
       return res.status(400).json({ error: "Provide html, htmlPath or url" });
     }
 
     const browser = await getBrowser();
-    const page = await browser.newPage();
+    page = await browser.newPage();
 
     if (url) {
       await page.goto(url, { waitUntil });
@@ -75,32 +83,57 @@ app.post("/render", async (req, res) => {
     } else {
       await page.setContent(html, { waitUntil });
     }
-    
-    await page.emulateMediaType('screen');
-    // 🔥 FORCE FONT LOAD
-    await page.evaluateHandle('document.fonts.ready');
+
+    // Conservé volontairement pour ne pas modifier le rendu des documents existants.
+    await page.emulateMediaType("screen");
+    await page.evaluateHandle("document.fonts.ready");
     await new Promise(r => setTimeout(r, 100));
-    
-    const pdf = await page.pdf({
-      format: "A3",
+
+    const hasExplicitFormat =
+      typeof pdfOptions.format === "string" && pdfOptions.format.length > 0;
+    const hasExplicitDimensions =
+      pdfOptions.width !== undefined || pdfOptions.height !== undefined;
+    const usesCssPageSize = pdfOptions.preferCSSPageSize === true;
+
+    /*
+     * Compatibilité descendante du worker :
+     * - appel direct sans taille => A3, exactement comme avant ;
+     * - format fourni => on le respecte ;
+     * - dimensions personnalisées / @page CSS => pas de format A3 injecté.
+     */
+    const defaultPdfOptions = {
       printBackground: true,
       preferCSSPageSize: false,
       margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" },
       displayHeaderFooter: false,
       scale: 1,
-      timeout: 120000,
-      ...pdfOptions
-    });
+      timeout: 120000
+    };
 
-    await page.close();
+    if (!hasExplicitFormat && !hasExplicitDimensions && !usesCssPageSize) {
+      defaultPdfOptions.format = "A3";
+    }
+
+    const effectivePdfOptions = {
+      ...defaultPdfOptions,
+      ...pdfOptions
+    };
+
+    const pdf = await page.pdf(effectivePdfOptions);
+
     res.setHeader("Content-Type", "application/pdf");
     res.send(pdf);
-
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
   } finally {
-    release();    
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+    } catch (_) {}
+
+    release();
   }
 });
 
@@ -109,6 +142,6 @@ process.on("SIGTERM", async () => {
   process.exit(0);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Puppeteer Cluster worker listening on ${PORT}`);
 });
